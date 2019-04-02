@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support. select import Select
 
 def login(username, password):
     user = browser.find_element_by_id('paywall_username')   # Find the textboxes we'll send the credentials
@@ -36,28 +37,32 @@ def scan_documents():
                 document_name = first_col.text # if there is no View Abstract Related Documents text (dirty col), it is a document name
         except:
             continue
-        link = row.find_element_by_link_text(document_name)
-        link.click()
+        row.find_element_by_link_text(document_name).click() # go in document's page
         metrics_span = WebDriverWait(browser, 10).until(    
         EC.element_to_be_clickable((By.LINK_TEXT, 'View all metrics')))
-        metrics_span.click()
-        percentiles = []
-        percentiles.append(browser.find_element_by_id('percentLabel'))
-        ui_selector = WebDriverWait(browser, 10).until(    
-        EC.element_to_be_clickable((By.ID, 'multipleOptions-button')))
-        ui_selector.click()
-        ui_list = browser.find_element_by_id('multipleOptions-menu')
-        items = ui_list.find_elements_by_tag_name("li")
+        metrics_span.click() # click & go to metrics page (for the specific document)
+        percentiles = [] # initialize the percentiles list
+        percentiles.append(browser.find_element_by_id('percentLabel')) # get the first percentile
+        print(browser.find_element_by_id('percentLabel').text)
+        menu = WebDriverWait(browser, 10).until(lambda browser: browser.find_element_by_id('multipleOptions-menu'))
+        selector = WebDriverWait(browser, 10).until(lambda browser: browser.find_element_by_id('multipleOptions'))
+        browser.find_element_by_id('multipleOptions-button').click()
+        items = menu.find_elements_by_tag_name('li')
+        i=3
         for item in items:
+            item_id = 'ui-id-10'+str(i)
+            print(item_id)
             try:
-                item.click()
-                percentiles.append(browser.find_element_by_id('percentLabel'))
+                browser.find_element_by_id('multipleOptions-button').click()
+                menu.find_element_by_id(item_id).click()
+                i+=1
             except:
                 continue
+            percentiles.append(browser.find_element_by_id('percentLabel')) # get the first percentile
+            print(browser.find_element_by_id('percentLabel').text)
         break    
 
-
-browser = webdriver.Chrome('C:/chromedriver.exe')
+browser = webdriver.Chrome('C:/Users/Dimitris/Desktop/chromedriver.exe')
 
 url = 'https://www.scopus.com/'
 
