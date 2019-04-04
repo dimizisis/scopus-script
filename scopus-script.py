@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common import exceptions
+import re
 
 def login(username, password):
     user = browser.find_element_by_id('paywall_username')   # Find the textboxes we'll send the credentials
@@ -81,6 +82,8 @@ def scan_documents():
             print(doc_title)    # printing
             for percentile in percentiles:  
                 print(percentile)
+            average = get_average_percentile(percentiles)   # calculate & print average percentile
+            print('Average: ', average)
             browser.find_element_by_xpath("//*[text()='Back to document']").click() # got the percentiles, go back
             next_span = WebDriverWait(browser, 3).until(    
                 EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
@@ -91,7 +94,13 @@ def scan_documents():
             next_span = WebDriverWait(browser, 3).until(    
                 EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
             if not next_span: exit(0) # if there is no other document, exit
-            next_span.click()  
+            next_span.click()
+
+def get_average_percentile(percentiles):
+    percentiles_num = []
+    for percentile in percentiles:
+        percentiles_num.append(int(re.findall("\d+", percentile)[0]))
+    return float(sum(percentiles_num) / len(percentiles_num)) 
 
 browser = webdriver.Chrome()
 
