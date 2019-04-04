@@ -83,7 +83,7 @@ def scan_documents():
             if not next_span: exit(0) # if there is no other document, exit
             next_span.click()  
 
-browser = webdriver.Chrome('C:/chromedriver.exe')
+browser = webdriver.Chrome()
 
 url = 'https://www.scopus.com/'
 
