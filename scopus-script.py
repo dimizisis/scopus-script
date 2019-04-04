@@ -14,11 +14,11 @@ def login(username, password):
     login_btn.click()
 
 def search():
-    advanced_ref = WebDriverWait(browser, 10).until(    # when page is loaded, click Advanced Search
+    advanced_ref = WebDriverWait(browser, 4).until(    # when page is loaded, click Advanced Search
         EC.presence_of_element_located((By.LINK_TEXT, 'Advanced')))
     advanced_ref.click()
 
-    search_field = WebDriverWait(browser, 10).until(    # when page is loaded, click query text box & send our query
+    search_field = WebDriverWait(browser, 4).until(    # when page is loaded, click query text box & send our query
         EC.presence_of_element_located((By.ID, 'searchfield')))
     search_field.send_keys('( AF-ID ( "Panepistimion Makedonias"   60001086 ) )  AND  ( LIMIT-TO ( PUBYEAR ,  2018 ) )  AND  ( LIMIT-TO ( SRCTYPE ,  "j" ) )')
 
@@ -26,12 +26,12 @@ def search():
     search_btn.click()
 
 def scan_documents():
-    table_id = WebDriverWait(browser, 10).until(    
+    table_id = WebDriverWait(browser, 4).until(    
         EC.presence_of_element_located((By.ID, 'srchResultsList'))) # srchResultsList is the data table, from which we will get the documents' names
     row = table_id.find_element(By.CLASS_NAME, 'ddmDocTitle') # get all of the rows in the table
 
     try:
-        doc = WebDriverWait(browser, 20).until(    
+        doc = WebDriverWait(browser, 4).until(    
             EC.presence_of_element_located((By.LINK_TEXT, row.text)))   # go in document's page
         doc.click()
     except:
@@ -40,14 +40,24 @@ def scan_documents():
     while True:
 
         try:
-            metrics_span = WebDriverWait(browser, 5).until(    
+            metrics_span = WebDriverWait(browser, 3).until(    
             EC.element_to_be_clickable((By.LINK_TEXT, 'View all metrics')))
             metrics_span.click() # click & go to metrics page (for the specific document)
         except:
-            next_span = WebDriverWait(browser, 5).until(    
-                EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
-            if not next_span: exit(0) # if there is no other document, exit
-            next_span.click()
+            while True:
+                try:
+                    next_span = WebDriverWait(browser, 3).until(    
+                        EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
+                except:
+                    exit(0)
+                next_span.click()
+                try:
+                    metrics_span = WebDriverWait(browser, 3).until(    
+                        EC.element_to_be_clickable((By.LINK_TEXT, 'View all metrics')))
+                except:
+                    continue
+                if metrics_span: break
+            metrics_span.click() # click & go to metrics page (for the specific document)
         percentiles = [] # initialize the percentiles list
         try:
             doc_title = browser.find_element_by_id('altmet_article').find_element_by_tag_name('h3').text    # get document title
@@ -72,13 +82,13 @@ def scan_documents():
             for percentile in percentiles:  
                 print(percentile)
             browser.find_element_by_xpath("//*[text()='Back to document']").click() # got the percentiles, go back
-            next_span = WebDriverWait(browser, 5).until(    
+            next_span = WebDriverWait(browser, 3).until(    
                 EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
             if not next_span: exit(0) # if there is no other document, exit
             next_span.click()
         except:
             browser.find_element_by_xpath("//*[text()='Back to document']").click() # if document has no metrics to fetch
-            next_span = WebDriverWait(browser, 5).until(    
+            next_span = WebDriverWait(browser, 3).until(    
                 EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
             if not next_span: exit(0) # if there is no other document, exit
             next_span.click()  
