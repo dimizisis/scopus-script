@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common import exceptions
 import re
+from collections import deque
 
 def login(username, password):
     user = browser.find_element_by_id('paywall_username')   # Find the textboxes we'll send the credentials
@@ -27,92 +28,108 @@ def search():
     search_btn.click()
 
 def scan_documents():
-    table_id = WebDriverWait(browser, 4).until(    
-        EC.presence_of_element_located((By.ID, 'srchResultsList'))) # srchResultsList is the data table, from which we will get the documents' names
-    row = table_id.find_element(By.CLASS_NAME, 'ddmDocTitle') # get all of the rows in the table
 
-    try:
-        doc = WebDriverWait(browser, 4).until(    
-            EC.presence_of_element_located((By.LINK_TEXT, row.text)))   # go in document's page
-        doc.click()
-    except:
-        exit(1)
-
+    rows = get_source_rows()
+    curr_page = 1
+    no_of_pages = get_number_of_pages()
+    done_sources = []
+    rows = get_source_rows()
     while True:
 
         try:
-            metrics_span = WebDriverWait(browser, 3).until(    
-            EC.element_to_be_clickable((By.LINK_TEXT, 'View all metrics')))
-            metrics_span.click() # click & go to metrics page (for the specific document)
-        except:
-            while True:
-                try:
-                    next_span = WebDriverWait(browser, 3).until(    
-                        EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
-                except:
-                    exit(0)
-                next_span.click()
-                try:
-                    metrics_span = WebDriverWait(browser, 3).until(    
-                        EC.element_to_be_clickable((By.LINK_TEXT, 'View all metrics')))
-                except:
-                    continue
-                if metrics_span: break
-            metrics_span.click() # click & go to metrics page (for the specific document)
-        percentiles = [] # initialize the percentiles list
-        try:
-            doc_title = browser.find_element_by_id('altmet_article').find_element_by_tag_name('h3').text    # get document title
-            percentiles.append(browser.find_element_by_id('percentLabel').text) # get the first percentile
+            source_name = rows.popleft()
+            while source_name in done_sources:
+                source_name = rows.popleft()
+            done_sources.append(source_name)
+            doc = WebDriverWait(browser, 4).until(    
+                EC.presence_of_element_located((By.LINK_TEXT, source_name)))   # go in document's page
+            doc.click()
+
             try:
-                menu = browser.find_element_by_id('multipleOptions-menu')   # if dropdown list has multiple options
-                button = browser.find_element_by_id('multipleOptions-button')
-                button.click()
+                categories = WebDriverWait(browser, 4).until(    
+                    EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'treeLineContainer')]")))    # find categories names
+
+                categories = convert_to_txt(categories) # convert categories from web element to string
+
+                percentiles = WebDriverWait(browser, 4).until(    
+                    EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'pull-left paddingLeftQuarter')]"))) # find percentiles
+
+                percentiles = percentiles_to_num(convert_to_txt(percentiles))   # convert percentiles to number (int)
+
+                citescores = dict(zip(categories, percentiles))    # create a dictionary <category name, percentile, avg(percentile), <name>
+                citescores['Average'] =  get_average_percentile(percentiles)
+                citescores['Name'] = source_name
+
+                citescore_lst.append(citescores)
+                print(citescores)
+
+                browser.execute_script("window.history.go(-1)")
             except:
-                menu = browser.find_element_by_id('subjectArea-menu')   # if dropdown list has only one option
-                button = browser.find_element_by_id('subjectArea-button')
-                
-            items = menu.find_elements_by_tag_name('div')   # find items of dropdown list
-            for item in items:  # get the rest percentiles
-                try:
-                    button.click()  # click button to see options
-                    item.click()    # click on every option of dropdown list
-                    percentiles.append(browser.find_element_by_id('percentLabel').text) # append percentile to list 
-                except:
-                    continue
-            print(doc_title)    # printing
-            for percentile in percentiles:  
-                print(percentile)
-            average = get_average_percentile(percentiles)   # calculate & print average percentile
-            print('Average: ', average)
-            browser.find_element_by_xpath("//*[text()='Back to document']").click() # got the percentiles, go back
-            next_span = WebDriverWait(browser, 3).until(    
-                EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
-            if not next_span: exit(0) # if there is no other document, exit
-            next_span.click()
+                browser.execute_script("window.history.go(-1)")
         except:
-            browser.find_element_by_xpath("//*[text()='Back to document']").click() # if document has no metrics to fetch
-            next_span = WebDriverWait(browser, 3).until(    
-                EC.element_to_be_clickable((By.LINK_TEXT, 'Next'))) # go to next document
-            if not next_span: exit(0) # if there is no other document, exit
-            next_span.click()
+            try:
+                change_page(curr_page)
+                curr_page += 1
+                rows = get_source_rows()
+            except:
+                break
+
+def convert_to_txt(lst):
+    return [element.text for element in lst]
+
+def percentiles_to_num(lst):
+    percentiles_num = []
+    for percentile in lst:
+        percentiles_num.append(int(re.findall("\d+", percentile)[0]))
+    return percentiles_num
 
 def get_average_percentile(percentiles):
-    percentiles_num = []
-    for percentile in percentiles:
-        percentiles_num.append(int(re.findall("\d+", percentile)[0]))
-    return float(sum(percentiles_num) / len(percentiles_num)) 
+    return float(sum(percentiles) / len(percentiles)) 
 
-browser = webdriver.Chrome()
+def remove_duplicates(lst):
+    return {frozenset(item.items()) : item for item in lst}.values() 
 
-url = 'https://www.scopus.com/'
+def change_page(curr_page):
+    try:
+        paging_ul = WebDriverWait(browser, 4).until(    # when page is loaded, click query text box & send our query
+            EC.presence_of_element_located((By.CLASS_NAME, 'pagination')))
+        pages = paging_ul.find_elements_by_tag_name('li')
 
-browser.get((url))
+        next_page = next(page for page in pages if page.text == str(curr_page+1))
 
-username_str = 'scopus_account' # login credentials
-password_str = 'scopus_pass'
+        next_page.click()
 
-login(username_str, password_str)
+    except:
+        exit(0)
 
-search()
+def get_number_of_pages():
+    paging_ul = WebDriverWait(browser, 4).until(    # when page is loaded, click query text box & send our query
+            EC.presence_of_element_located((By.CLASS_NAME, 'pagination')))
+    return len(paging_ul.find_elements_by_tag_name("li"))
 
-scan_documents()
+def get_source_rows():
+    table_id = WebDriverWait(browser, 4).until(    
+        EC.presence_of_element_located((By.ID, 'srchResultsList'))) # srchResultsList is the data table, from which we will get the documents' names
+    rows = table_id.find_elements(By.CLASS_NAME, 'ddmDocSource') # get all of the rows in the table
+    rows = convert_to_txt(rows) # convert web elements to string
+    return deque(rows)
+
+
+if __name__ == "__main__":
+
+    citescore_lst = []
+
+    browser = webdriver.Chrome()
+
+    url = 'https://www.scopus.com/home.uri'
+
+    browser.get((url))
+
+    username_str = 'scopus_acc' # login credentials
+    password_str = 'scopus_pass'
+
+    login(username_str, password_str)
+
+    search()
+
+    scan_documents()
