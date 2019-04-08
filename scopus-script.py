@@ -29,18 +29,17 @@ def search():
 
 def scan_documents():
 
-    rows = get_source_rows()
-    curr_page = 1
-    no_of_pages = get_number_of_pages()
-    done_sources = []
-    rows = get_source_rows()
+    curr_page = 1   # begin with page 1
+    no_of_pages = get_number_of_pages() # get total number of pages
+    done_sources = []   # list of checked sources
+    rows = get_source_rows()    # get all source names
     while True:
 
         try:
-            source_name = rows.popleft()
-            while source_name in done_sources:
+            source_name = rows.popleft()    # pop the first one in list
+            while source_name in done_sources:  # if the one we popped is in done_sources, pop the next one
                 source_name = rows.popleft()
-            done_sources.append(source_name)
+            done_sources.append(source_name)    # add the source we're checking in list
             doc = WebDriverWait(browser, 4).until(    
                 EC.presence_of_element_located((By.LINK_TEXT, source_name)))   # go in document's page
             doc.click()
@@ -68,9 +67,9 @@ def scan_documents():
                 browser.execute_script("window.history.go(-1)")
         except:
             try:
-                change_page(curr_page)
+                change_page(curr_page)  # change page
                 curr_page += 1
-                rows = get_source_rows()
+                rows = get_source_rows()    # get the new source names
             except:
                 break
 
@@ -113,7 +112,6 @@ def get_source_rows():
     rows = table_id.find_elements(By.CLASS_NAME, 'ddmDocSource') # get all of the rows in the table
     rows = convert_to_txt(rows) # convert web elements to string
     return deque(rows)
-
 
 if __name__ == "__main__":
 
