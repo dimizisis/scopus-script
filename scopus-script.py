@@ -320,4 +320,4 @@ if __name__ == "__main__":
 
     search()
 
-    scan_documents()
+    analyze_documents()
