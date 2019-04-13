@@ -9,6 +9,7 @@ import csv
 import operator
 
 OUT_FILENAME = 'list.csv'
+MAX_DELAY_TIME = 15
 
 def login(browser, username, password):
 
@@ -31,11 +32,11 @@ def search(browser):
     in Scopus
 
     '''
-    advanced_ref = WebDriverWait(browser, 6).until(    # when page is loaded, click Advanced Search
+    advanced_ref = WebDriverWait(browser, MAX_DELAY_TIME).until(    # when page is loaded, click Advanced Search
         EC.presence_of_element_located((By.LINK_TEXT, 'Advanced')))
     advanced_ref.click()
 
-    search_field = WebDriverWait(browser, 6).until(    # when page is loaded, click query text box & send our query
+    search_field = WebDriverWait(browser, MAX_DELAY_TIME).until(    # when page is loaded, click query text box & send our query
         EC.presence_of_element_located((By.ID, 'searchfield')))
     search_field.send_keys('( AF-ID ( "Panepistimion Makedonias"   60001086 ) )  AND  ( LIMIT-TO ( PUBYEAR ,  2018 ) )  AND  ( LIMIT-TO ( SRCTYPE ,  "j" ) )')
 
@@ -66,41 +67,55 @@ def analyze_documents(browser):
             source_name = source_rows.popleft()
             year = year_rows.popleft()
 
-            source = WebDriverWait(browser, 6).until(    
-                EC.presence_of_element_located((By.LINK_TEXT, source_name)))   # go in document's page
-            source.click()
+            if source_name['clickable']:
+                source = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                    EC.presence_of_element_located((By.LINK_TEXT, source_name['name'])))   # go in document's page
+                source.click()
 
-            try:
-                categories = WebDriverWait(browser, 6).until(    
-                    EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'treeLineContainer')]")))    # find categories names
+                try:
+                    categories = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'treeLineContainer')]")))    # find categories names
 
-                categories = convert_to_txt(categories) # convert categories from web element to string
+                    categories = convert_to_txt(categories) # convert categories from web element to string
 
-                percentiles = WebDriverWait(browser, 6).until(    
-                    EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'pull-left paddingLeftQuarter')]"))) # find percentiles
+                    percentiles = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'pull-left paddingLeftQuarter')]"))) # find percentiles
 
-                percentiles = percentiles_to_num(convert_to_txt(percentiles))   # convert percentiles to number (int)
+                    percentiles = percentiles_to_num(convert_to_txt(percentiles))   # convert percentiles to number (int)
 
-                metricLabels = WebDriverWait(browser, 6).until(    
-                    EC.presence_of_all_elements_located((By.XPATH, './/span[@class = "metricLabel"]'))) # find metric labels
+                    metricLabels = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                        EC.presence_of_all_elements_located((By.XPATH, './/span[@class = "metricLabel"]'))) # find metric labels
 
-                metricLabels = convert_to_txt(metricLabels)
+                    metricLabels = convert_to_txt(metricLabels) # convert to str
 
-                metricValues = WebDriverWait(browser, 6).until(    
-                    EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'value fontMedLarge  lineHeight2')]"))) # find metrics (num)
+                    metricLabels = remove_digits(metricLabels)  # remove digits (dates)
 
-                metricValues = convert_to_txt(metricValues)
+                    metricLabels = remove_spaces(metricLabels)  # remove spaces
 
-                document_dict = create_dict(i, document_name, source_name, year, author_list, get_number_of_authors(author_list), get_average_percentile(percentiles), zip(metricLabels, metricValues))
+                    metricValues = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'value fontMedLarge  lineHeight2')]"))) # find metrics (num)
 
+                    metricValues = convert_to_txt(metricValues)
+
+                    document_dict = create_dict(i, document_name, source_name['name'], year, author_list, get_number_of_authors(author_list), get_average_percentile(percentiles), zip(metricLabels, metricValues))
+
+                    final_lst.append(document_dict)
+
+                    print(document_dict)
+
+                    i+=1
+                    browser.execute_script("window.history.go(-1)")
+                except:
+                    document_dict = create_dict(i, document_name, source_name['name'], year, author_list, get_number_of_authors(author_list), 0, zip(['CiteScore', 'SJR', 'SNIP'], [0, 0, 0]))
+                    final_lst.append(document_dict)
+                    i+=1
+                    print(document_dict)
+                    browser.execute_script("window.history.go(-1)")
+            else:
+                document_dict = create_dict(i, document_name, source_name['name'], year, author_list, get_number_of_authors(author_list), 0, zip(['CiteScore', 'SJR', 'SNIP'], [0, 0, 0]))
                 final_lst.append(document_dict)
+                i+=1
                 print(document_dict)
-
-                i+=1
-                browser.execute_script("window.history.go(-1)")
-            except:
-                i+=1
-                browser.execute_script("window.history.go(-1)")
         except:
             try:
                 if curr_page < no_of_pages:
@@ -117,8 +132,29 @@ def analyze_documents(browser):
 
     return final_lst
 
-def create_dict(i, doc_name, source_name, year, authors, num_of_authors, avg_percentile, metrics):
+def remove_digits(lst): 
+    '''
+    Takes a list of strings and
+    removes digits from every element
+    '''
+    pattern = '[0-9]'
+    lst = [re.sub(pattern, '', i) for i in lst]
+    return lst
 
+def remove_spaces(lst):
+    '''
+    Takes a list of strings and
+    removes spaces from every element
+    '''
+    lst = [x.strip(' ') for x in lst]
+    return lst
+
+def create_dict(i, doc_name, source_name, year, authors, num_of_authors, avg_percentile, metrics):
+    '''
+    Takes some lists & a dictionary with info
+    and creates a dictionary for each document with
+    all the info needed
+    '''
     dictionary = {'#': i, 'Document Name': doc_name, 'Source Name': source_name, 'Year': year, 'Authors': authors, '# Authors': num_of_authors, 'Average Percentile': avg_percentile}
     dictionary.update(metrics)
     return dictionary
@@ -163,7 +199,7 @@ def change_page(browser, curr_page):
     Returns the new curr_page
     '''
     try:
-        paging_ul = WebDriverWait(browser, 6).until(    # when page is loaded, click query text box & send our query
+        paging_ul = WebDriverWait(browser, MAX_DELAY_TIME).until(    # when page is loaded, click query text box & send our query
             EC.presence_of_element_located((By.CLASS_NAME, 'pagination')))
         pages = paging_ul.find_elements_by_tag_name('li')
 
@@ -180,19 +216,46 @@ def get_number_of_pages(browser):
     '''
     Returns total number of pages
     '''
-    paging_ul = WebDriverWait(browser, 6).until(    # when page is loaded, click query text box & send our query
+    paging_ul = WebDriverWait(browser, MAX_DELAY_TIME).until(    # when page is loaded, click query text box & send our query
             EC.presence_of_element_located((By.CLASS_NAME, 'pagination')))
     return len(paging_ul.find_elements_by_tag_name("li"))
+
+def get_number_of_rows(browser):
+    '''
+    Returns the number of rows
+    of a page (number of documents)
+    '''
+    elements = []
+    i=0
+    while True:
+        try:
+            elements.append(browser.find_element_by_xpath('//*[@id="resultDataRow'+str(i)+'"]'))
+            i+=1
+        except:
+            break
+    return len(elements)
 
 def get_source_rows(browser):
     '''
     Fetches all sources (names)
     and returns a string queue (with all the names)
     '''
-    table_id = WebDriverWait(browser, 6).until(    
-        EC.presence_of_element_located((By.ID, 'srchResultsList'))) # srchResultsList is the data table, from which we will get the documents' names
-    rows = table_id.find_elements(By.CLASS_NAME, 'ddmDocSource') # get all of the rows in the table
-    rows = convert_to_txt(rows) # convert web elements to string
+    rows = []
+
+    no_of_rows = get_number_of_rows(browser)    # number of rows of current page
+
+    i=1
+    while i<=no_of_rows:
+        td = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+            EC.presence_of_element_located((By.XPATH, '//*[@id="resultDataRow'+str(i-1)+'"]/td[4]'))) 
+        try:
+            row = td.find_element(By.CLASS_NAME, 'ddmDocSource')
+            rows.append({'name': row.text, 'clickable': True})
+            i+=1
+        except:
+            rows.append({'name': td.text.splitlines()[0], 'clickable': False})
+            i+=1
+
     return deque(rows)
 
 def get_document_rows(browser):
@@ -200,7 +263,7 @@ def get_document_rows(browser):
     Fetches all documents (names)
     and returns a string queue (with all the names)
     '''
-    table_id = WebDriverWait(browser, 6).until(    
+    table_id = WebDriverWait(browser, MAX_DELAY_TIME).until(    
         EC.presence_of_element_located((By.ID, 'srchResultsList'))) # srchResultsList is the data table, from which we will get the documents' names
     rows = table_id.find_elements(By.CLASS_NAME, 'ddmDocTitle') # get all of the rows in the table
     rows = convert_to_txt(rows) # convert web elements to string
@@ -211,7 +274,7 @@ def get_author_rows(browser):
     Fetches all authors (names)
     and returns a string queue (with all the names)
     '''
-    table_id = WebDriverWait(browser, 6).until(    
+    table_id = WebDriverWait(browser, MAX_DELAY_TIME).until(    
         EC.presence_of_element_located((By.ID, 'srchResultsList'))) # srchResultsList is the data table, from which we will get the documents' names
     rows = table_id.find_elements(By.CLASS_NAME, ' ddmAuthorList') # get all of the rows in the table
     rows = convert_to_txt(rows) # convert web elements to string
@@ -222,7 +285,7 @@ def get_year_rows(browser):
     Fetches all years
     and returns a string queue (with all the years)
     '''
-    table_id = WebDriverWait(browser, 6).until(    
+    table_id = WebDriverWait(browser, MAX_DELAY_TIME).until(    
         EC.presence_of_element_located((By.ID, 'srchResultsList'))) # srchResultsList is the data table, from which we will get the documents' names
     rows = table_id.find_elements(By.CLASS_NAME, ' ddmPubYr') # get all of the rows in the table
     rows = convert_to_txt(rows) # convert web elements to string
@@ -234,7 +297,7 @@ def write_to_csv(data):
     and writes all the info to csv file
     '''
     keys = data[0].keys()
-    with open(OUT_FILENAME, 'w') as output_file:
+    with open(OUT_FILENAME, 'w', encoding='utf-8') as output_file:
         dict_writer = csv.DictWriter(output_file, keys)
         dict_writer.writeheader()
         dict_writer.writerows(data)
