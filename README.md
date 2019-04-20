@@ -43,13 +43,13 @@ Script hasn't been tested in other browser drivers, rather than Chrome
 2. Enter your credentials
 
 ```
-    username_str = 'your_scopus_account_email' # login credentials
-    password_str = 'your_password'
+username_str = 'your_scopus_account_email' # login credentials
+password_str = 'your_password'
 ```
 3. Edit query
 
 ```
-    query = 'your_search_query'
+query = 'your_search_query'
 ```
     
 4. In cmd (or command line)
