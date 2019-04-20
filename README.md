@@ -6,8 +6,13 @@ Script that logs in to scopus (must have account on www.scopus.com) and searches
 Analyzes documents from query, and returns a dictionary of type:
 
 ```
-{#, document_name, source_name, year, author_list, number_of_authors (source), average_percentile (source), metrics (source)}
+{ #, document_name, source_name, year, author_list, number_of_authors (source), 
+average_percentile (source), metrics (source) }
 ```
+
+for every document
+
+When analyzing is finished, a CSV file is exported, containing all the dictionaries mentioned above (documents with its info)
 
 ### Works for
 
