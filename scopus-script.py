@@ -33,7 +33,7 @@ def login(browser, username, password):
     except:
         return True  
 
-def search(browser):
+def search(browser, query):
     '''
     Searches for sources, with given query
     in Scopus
@@ -45,7 +45,7 @@ def search(browser):
 
     search_field = WebDriverWait(browser, MAX_DELAY_TIME).until(    # when page is loaded, click query text box & send our query
         EC.presence_of_element_located((By.ID, 'searchfield')))
-    search_field.send_keys('( AF-ID ( "Panepistimion Makedonias"   60001086 ) )  AND  ( LIMIT-TO ( PUBYEAR ,  2018 ) )  AND  ( LIMIT-TO ( SRCTYPE ,  "k" ) )')
+    search_field.send_keys(query)
 
     search_btn = browser.find_element_by_id('advSearch')    # when query is sent, find & press the search button
     search_btn.click()
@@ -312,19 +312,27 @@ def write_to_csv(data):
 
 if __name__ == "__main__":
 
-    citescore_lst = []
+    analyzed_docs = []
 
     browser = webdriver.Chrome()
 
-    url = 'https://www.scopus.com/home.uri'
+    url = 'https://www.scopus.com/customer/authenticate/loginfull.uri'
 
     browser.get((url))
 
-    username_str = 'scopus_acc' # login credentials
-    password_str = 'scopus_pass'
+    username_str = 'scopus_email' # login credentials
+    password_str = 'scopus_password'
 
-    login(username_str, password_str)
+    query = '( AF-ID ( "Panepistimion Makedonias"   60001086 ) )  AND  ( LIMIT-TO ( PUBYEAR ,  2018 ) )  AND  ( LIMIT-TO ( SRCTYPE ,  "k" ) )'
 
-    search()
+    # if login successful
+    if login(browser, username_str, password_str):
+        print('Login ok')
+    else:
+        print('Login failed, program exiting now...')
 
-    analyze_documents()
+    search(browser, query)
+
+    analyzed_docs = analyze_documents(browser)
+
+    write_to_csv(analyzed_docs)
