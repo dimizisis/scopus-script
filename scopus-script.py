@@ -8,8 +8,8 @@ from collections import deque
 import csv
 import operator
 
-OUT_FILENAME = 'list.csv'
-MAX_DELAY_TIME = 15
+OUT_FILENAME = 'RESULTS2017.csv'
+MAX_DELAY_TIME = 10
 
 def login(browser, username, password):
 
@@ -26,6 +26,13 @@ def login(browser, username, password):
     login_btn = browser.find_element(By.XPATH, '//*[@title="Login"]')   # find & click login button
     login_btn.click()
 
+    try:
+        # if login text still exists, login wasn't successful
+        login_txt = WebDriverWait(browser, MAX_DELAY_TIME-(MAX_DELAY_TIME/2)).until(EC.presence_of_element_located((By.XPATH, '//*[@id="headerWrapper"]/div[12]/h1')))
+        return False
+    except:
+        return True  
+
 def search(browser):
     '''
     Searches for sources, with given query
@@ -38,7 +45,7 @@ def search(browser):
 
     search_field = WebDriverWait(browser, MAX_DELAY_TIME).until(    # when page is loaded, click query text box & send our query
         EC.presence_of_element_located((By.ID, 'searchfield')))
-    search_field.send_keys('( AF-ID ( "Panepistimion Makedonias"   60001086 ) )  AND  ( LIMIT-TO ( PUBYEAR ,  2018 ) )  AND  ( LIMIT-TO ( SRCTYPE ,  "j" ) )')
+    search_field.send_keys('( AF-ID ( "Panepistimion Makedonias"   60001086 ) )  AND  ( LIMIT-TO ( PUBYEAR ,  2018 ) )  AND  ( LIMIT-TO ( SRCTYPE ,  "k" ) )')
 
     search_btn = browser.find_element_by_id('advSearch')    # when query is sent, find & press the search button
     search_btn.click()
