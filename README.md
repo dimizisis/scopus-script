@@ -50,6 +50,7 @@ Script hasn't been tested in other browser drivers, rather than Chrome
 
 ```
     query = 'your_search_query'
+```
     
 4. In cmd (or command line)
 
