@@ -81,30 +81,57 @@ def analyze_documents(browser):
 
                 try:
                     categories = WebDriverWait(browser, MAX_DELAY_TIME).until(    
-                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'treeLineContainer')]")))    # find categories names
+                        EC.presence_of_all_elements_located((By.CLASS_NAME, 'treeLineContainer')))    # find categories names
 
                     categories = convert_to_txt(categories) # convert categories from web element to string
 
-                    percentiles = WebDriverWait(browser, MAX_DELAY_TIME).until(    
-                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'pull-left paddingLeftQuarter')]"))) # find percentiles
+                    try:
+                        percentiles = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                            EC.presence_of_all_elements_located((By.XPATH, '//*[contains(@class, "pull-left paddingLeftQuarter")]'))) # find percentiles
 
-                    percentiles = percentiles_to_num(convert_to_txt(percentiles))   # convert percentiles to number (int)
+                        percentiles = percentiles_to_num(convert_to_txt(percentiles))   # convert percentiles to number (int)
 
-                    metricLabels = WebDriverWait(browser, MAX_DELAY_TIME).until(    
-                        EC.presence_of_all_elements_located((By.XPATH, './/span[@class = "metricLabel"]'))) # find metric labels
+                        print(percentiles)
 
-                    metricLabels = convert_to_txt(metricLabels) # convert to str
+                    except:
+                        print('no percentiles found')
 
-                    metricLabels = remove_digits(metricLabels)  # remove digits (dates)
+                    #try:
+                        
+                        #metricLabels = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                         #   EC.presence_of_element_located((By.XPATH, "//*[contains(@class, 'h4 fontNormal noMargin Bottom metricLabel')]"))) # find metric labels
 
-                    metricLabels = remove_spaces(metricLabels)  # remove spaces
+                        #print(metricLabels.text)
 
-                    metricValues = WebDriverWait(browser, MAX_DELAY_TIME).until(    
-                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'value fontMedLarge  lineHeight2')]"))) # find metrics (num)
+                        #metricLabels = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                            #EC.presence_of_all_elements_located((By.XPATH, "//*[contains(@class, 'fontNormal h4 noMarginBottom metricLabel')]"))) # find metric labels
 
-                    metricValues = convert_to_txt(metricValues)
+                        #metricLabels = convert_to_txt(metricLabels) # convert to str
 
-                    document_dict = create_dict(i, document_name, source_name['name'], year, author_list, get_number_of_authors(author_list), get_average_percentile(percentiles), zip(metricLabels, metricValues))
+                        #metricLabels = remove_digits(metricLabels)  # remove digits (dates)
+
+                        #metricLabels = remove_spaces(metricLabels)  # remove spaces
+
+                        #metricLabels = remove_new_line(metricLabels)   # remove next line character
+
+                        #print(metricLabels)
+
+                    #except:
+                        #print('no metric labels found')
+
+                    try:
+
+                        metricValues = WebDriverWait(browser, MAX_DELAY_TIME).until(    
+                            EC.presence_of_all_elements_located((By.XPATH, "//*[contains(@class, 'value fontMedLarge lineHeight2 blockDisplay')]"))) # find metrics (num)
+
+                        metricValues = convert_to_txt(metricValues)
+
+                        print(metricValues)
+                    
+                    except:
+                        print('no metric values found')
+
+                    document_dict = create_dict(i, document_name, source_name['name'], year, author_list, get_number_of_authors(author_list), get_average_percentile(percentiles), zip(['CiteScore', 'SJR', 'SNIP'], metricValues))
 
                     final_lst.append(document_dict)
 
@@ -154,6 +181,14 @@ def remove_spaces(lst):
     removes spaces from every element
     '''
     lst = [x.strip(' ') for x in lst]
+    return lst
+
+def remove_new_line(lst):
+    '''
+    Takes a list of strings and
+    removes spaces from every element
+    '''
+    lst = [x.strip('\n.') for x in lst]
     return lst
 
 def create_dict(i, doc_name, source_name, year, authors, num_of_authors, avg_percentile, metrics):
