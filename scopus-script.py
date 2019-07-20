@@ -80,8 +80,8 @@ class DocumentPage():
         self.doc_source_class_name = 'ddmDocSource'      
         self.search_results_table_id = 'srchResultsList'
         self.doc_title_class_name = 'ddmDocTitle'
-        self.authors_list_class_name = ' ddmAuthorList'
-        self.pub_year_class_name = ' ddmPubYr'
+        self.authors_list_class_name = 'ddmAuthorList'
+        self.pub_year_class_name = 'ddmPubYr'
 
     def analyze_documents(self):
 
@@ -380,7 +380,7 @@ if __name__ == "__main__":
 
     analyzed_docs = []
 
-    browser = webdriver.Chrome('C:/Users/Dimitris/Desktop/Degree/chromedriver.exe')
+    browser = webdriver.Chrome()
 
     url = 'https://www.scopus.com/customer/authenticate/loginfull.uri'
 
