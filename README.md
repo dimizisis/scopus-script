@@ -30,6 +30,11 @@ When analyzing is finished, a CSV file is exported, containing all the dictionar
 2. Correct version chromedriver (depends on your version of Chrome, for more see http://chromedriver.chromium.org/)
 3. If using Windows, please add Chromedriver in PATH (for more see https://www.computerhope.com/issues/ch000549.htm)
 
+## Python dependencies
+
+pip
+selenium
+
 ### NOTE!
 
 Script hasn't been tested in other browser drivers, rather than Chrome
