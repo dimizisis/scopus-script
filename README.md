@@ -32,7 +32,7 @@ When analyzing is finished, a CSV file is exported, containing all the dictionar
 
 ## Python dependencies
 
-pip
+pip,
 selenium
 
 ### NOTE!
